@@ -2,6 +2,11 @@
 // global stores
 const ALL_ELEMENTS = {};
 
+/*
+ * Each element will get the following attributes
+ * - parent {number} (If this element is contained) The ID of the parent object
+ * - linked_by {set} (If this element is referenced by other ones)
+ */
 
 // export classes
 export class __Viewer {}
@@ -15,6 +20,7 @@ export class Identity {}
 // --------------------------
 let id = 999;
 
+let currentViewer = new __Viewer();
 
 /**
  * Returns a new unique id
@@ -53,9 +59,25 @@ function _addClass(clazz, data){
   return val;
 }
 
+/**
+ * Adds a new created object to its parent object
+ * @protected
+ * @param {object} newObject - The newly created obejct
+ * @param {integer} parentId - The id of the parent object
+ * @param {string} referenceName - The name of the reference
+ */
+function _addReference(newObject, parentId, referenceName){
+  const parent = ALL_ELEMENTS[parentId];
+
+  if(parent[referenceName] === undefined){
+    parent[referenceName] = [];
+  }
+
+  parent[referenceName].push(newObject.__id_unique);
+}
 
 export function get__Viewer(){
-  return ALL_ELEMENTS[1000];
+  return currentViewer;
 }
 
 // --------------------------
@@ -81,52 +103,38 @@ export function getIdentity(id){
 // --------------------------
 // creation functions
 // --------------------------
-
-
 export function addApplication(data){
   const val = _addClass(Application, data);
   return val.__id_unique;
 }
 
 /**
- * This is for elemenst which are contained in other ones
+ * This is for elements which are contained in other ones
  */
 export function addEntitlement(data, parentId, referenceName){
-  const val = new Entitlement();
-  val.__id_unique = _getNextId();
-  _setAttributes(val, data);
-  entitlementById[val.__id_unique] = val;
-  ALL_ELEMENTS[val.__id_unique] = val;
-
-  // add the element to its parent
-
-
+  const val = _addClass(Entitlement, data);
+  _addReference(val, parentId, referenceName);
   return val.__id_unique;
 }
 
 /**
- * This is for elemenst which are contained in other ones
+ * This is for elements which are contained in other ones
  */
 export function addAccount(data, parentId, referenceName){
-  const val = new Account();
-  val.__id_unique = _getNextId();
-  _setAttributes(val, data);
-  accountById[val.__id_unique] = val;
-  ALL_ELEMENTS[val.__id_unique] = val;
-  // todo: weis noch nicht genau wie
+  const val = _addClass(Account, data);
+  _addReference(val, parentId, referenceName);
   return val.__id_unique;
 }
 
 export function addIdentity(data){
   const val = _addClass(Identity, data);
   return val.__id_unique;
-  // const val = new Identity();
-  // val.__id_unique = _getNextId();
-  // _setAttributes(val, data);
-  // identityById[val.__id_unique] = val;
-  // ALL_ELEMENTS[val.__id_unique] = val;
-  // return val.__id_unique;
 }
+
+
+// --------------------------
+// create test data
+// --------------------------
 
 
 const identity1 = addIdentity({
@@ -141,23 +149,23 @@ const identity2 = addIdentity({
   "last_name"   : "Flutz"
 });
 
-// const app1 = addApplication({
-//   "app_id"        : "4711",
-//   "name"          : "The Gumbors Head",
-//   "description"   : "The best description ever",
-//   "creation_date" : "19.11.1983"
-// });
-//
-// const ent1 = addEntitlement(
-//   {
-//     "name"        : "Write",
-//     "description" : "Allows write operations"
-//   },app1,entitlements
-// );
-//
-// const ent2 = addEntitlement(
-//   {
-//     "name"        : "Read",
-//     "description" : "Allows read operations"
-//   },app1,entitlements
-// );
+const app1 = addApplication({
+  "app_id"        : "4711",
+  "name"          : "The Gumbors Head",
+  "description"   : "The best description ever",
+  "creation_date" : "19.11.1983"
+});
+
+const ent1 = addEntitlement(
+  {
+    "name"        : "Write",
+    "description" : "Allows write operations"
+  },app1,'entitlements'
+);
+
+const ent2 = addEntitlement(
+  {
+    "name"        : "Read",
+    "description" : "Allows read operations"
+  },app1,'entitlements'
+);

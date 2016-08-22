@@ -32,6 +32,7 @@ import {
 from 'graphql-relay';
 
 import {
+  __Viewer,
   get__Viewer,
   Application,
   getApplication,
@@ -231,7 +232,7 @@ const applicationType = new GraphQLObjectType({
       description: ''
     },
     entitlements :{
-      type: EntitlementConnection,
+      type: EntitlementConnection.connectionType,
       description : '',
       args: connectionArgs,
       resolve: (parent, args) => connectionFromArray(
@@ -245,13 +246,13 @@ const applicationType = new GraphQLObjectType({
 
 
 
-const __Viewer = new GraphQLObjectType({
+const __viewerType = new GraphQLObjectType({
   name: '__Viewer',
   description : 'The currently connected user',
   fields: () => ({
     id: globalIdField('__Viewer', (obj, context, info) => obj.id),
     identities :{
-      type: IdentityConnection,
+      type: IdentityConnection.connectionType,
       description : 'Get all identities',
       args: connectionArgs,
       resolve: (parent, args) => connectionFromArray(
@@ -273,7 +274,7 @@ const Root = new GraphQLObjectType({
   name: 'Root',
   fields: {
     viewer: {
-      type: identityType,
+      type: __viewerType,
       resolve: () => get__Viewer(),
     },
     node: nodeField,

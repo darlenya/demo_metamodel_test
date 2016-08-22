@@ -2,7 +2,10 @@
   "private": true,
   "scripts": {
     "start": "babel-node ./server.js",
-    "debug": "babel-node-debug ./server.js"
+    "debug": "babel-node-debug ./server.js",
+    "compile": "babel --presets es2015,stage-0 -d lib/ data/",
+    "prepublish": "npm run compile",
+    "test": "npm run compile && mocha tests/data/objects/*Test.js --compilers js:babel-core/register"
   },
   "dependencies": {
     "babel-core": "6.9.0",
@@ -21,6 +24,7 @@
     "webpack-dev-server": "1.14.1"
   },
   "devDependencies": {
+    "assert": "^1.4.1",
     "babel-cli": "6.9.0"
   }
 }
