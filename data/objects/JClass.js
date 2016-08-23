@@ -56,6 +56,119 @@ export class JClass {
 		_objectRegistry[this._id] = this;
 	}
 
+
+	/**
+	 * The sequence for all the objects
+	 * @returns {number} A new sequence number
+	 */
+	_getNewId(){
+		return _id++;
+	}
+
+	/**
+	 * Returns the object with the given ID. If the object does not exists
+	 * an error will be thrown
+	 * @param {number} id - The id of the object to be returned
+	 */
+	_getObjectForId(id){
+		if(_objectRegistry[id]=== undefined){
+			throw new Error(`The object with the id '${id}' does not exists`);
+		}else{
+			return _objectRegistry[id];
+		}
+	}
+
+	/**
+	 * Internal helper method. It will return the real object. If the if is given
+	 * it will retrive the original object for the ID first. Then it will proof
+	 * that the object is of the given type.
+	 * @param {object} element - The element or element id to be prooved.
+	 * @returns {object} The real object if it could be found
+	 */
+	_getElementForObject(element){
+		if(element === undefined){
+			throw new Error(`The given element is 'undefined'`);
+		}
+
+		// The given element is an id, check that it reference a valid object
+		if(typeof element === 'number'){
+			element = this.registry_function(element);
+		}
+
+		const expectedClass = this.constructor;
+		// Check that the element if of the expected type
+		if(expectedClass !== undefined && !(element instanceof expectedClass)){
+			throw new Error(`The element '${element.constructor.name}' if not an instance of '${expectedClass.constructor.name}'`);
+		}
+
+		return element;
+	}
+
+	/**
+	 * Set a new parent for this object
+	 * @param {string} propertyName - The name of the reference this object was added to
+	 * @param {object} object - The object this object was added to a reference
+	 */
+	set parent(propertyName, newParent){
+		// first set the new parent for this object
+		newParent = this._getElementForObject(newParent);
+		this._parent.property_name = propertyName;
+		this._parent.object = newParent;
+
+		// Then remove it from it previos parent
+		this._removeFromParent();
+	}
+
+	/**
+	 * Returns the parent of this object. An parent only exists if this object
+	 * is a conained object.
+	 * @returns {object} The parent of this object
+	 */
+	get parent(){
+		return this._parent.object;
+	}
+
+	/**
+	 * Removes this object from its parent, if it has one
+	 */
+	_removeFromParent(){
+		if(this._parent !== undefined){
+			// first this object must be removed from the old parent
+			this._parent._removeFromReferencedObjects(this._parent.property_name, this._parent.object);
+		}
+	}
+
+	/**
+	 * Referenced objects store all the incomming references to this object.
+	 * This method will remove an object from this references.
+	 * @param {string} propertyName - The name of the reference this object was added to
+	 * @param {object} element - The object to be deleted from the incomming references
+	 */
+	_removeFromReferencedObjects(propertyName, element){
+		const objId = element._id;
+
+		// _referenced_by.$objectId.property_name = $propertyName;
+		// _referenced_by.$objectId.count = 2; // defines how often the object is referenced in this object
+		// this._referenced_by = {};
+
+		if(this._referenced_by[objId] === undefined ){
+			// TODO The JClass needs a toString method to get a name
+			throw new Error(`The object could not be deleted from this object as it does not exists`);
+		}
+
+		if(this._referenced_by[objId].count > 1){
+			// just decrement the counter
+			this._referenced_by[objId].count--;
+		}else{
+			// remove the whole element
+			delete (this._referenced_by[objId]);
+		}
+	}
+
+	// ####################################################################
+	// # OLD
+	// ####################################################################
+
 	/**
 	 * Adds the inverse reference. Each object added as a reference to an other object
 	 * store the other object as an inverse reference.
@@ -127,47 +240,9 @@ export class JClass {
 		return false;
 	}
 
-	/**
-	 * Set a new parent for this object
-	 * @param {string} propertyName - The name of the reference this object was added to
-	 * @param {object} object - The object this object was added to a reference
-	 */
-	_setParent(propertyName, newParent){
-		this._removeFromParent();
-		this._parent.property_name = propertyName;
-		this._parent.object = newParent;
-	}
 
-	/**
-	 * Removes this object from its parent, if it has one
-	 */
-	_removeFromParent(){
-		if(this._parent !== undefined){
-			// first this object must be removed from the old parent
-			this._parent._removeReference(this._parent.property_name, this._parent.object);
-		}
-	}
 
-	/**
-	 * The sequence for all the objects
-	 * @returns {number} A new sequence number
-	 */
-	_getNewId(){
-		return _id++;
-	}
 
-	/**
-	 * Returns the object with the given ID. If the object does not exists
-	 * an error will be thrown
-	 * @param {number} id - The id of the object to be returned
-	 */
-	_getObjectForId(id){
-		if(_objectRegistry[id]=== undefined){
-			throw new Error(`The object with the id '${id}' does not exists`);
-		}else{
-			return _objectRegistry[id];
-		}
-	}
 
 	/**
 	 * Returns true if the given property is a Reference
