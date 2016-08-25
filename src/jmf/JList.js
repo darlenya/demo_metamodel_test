@@ -15,6 +15,7 @@ import {EventEmitter} from 'events';
  *  containment   : false
  * }
  *
+ * container         - (mandatory) The object containing this list
  * property_name     - (mandatory) The name of the property this list is used for.
  * unique            - If true, an element could only be stored once.
  * upper_bound       - '-1,0' means that there is no limit
@@ -42,13 +43,18 @@ import {EventEmitter} from 'events';
  *	element       - The element which should have been added
  *  limit         - The limit which is reached
  */
-export class JList {
+export class JList extends EventEmitter{
 
 	constructor(opts) {
+		super();
+
 		if(opts === undefined){
 			throw new Error(`No configuration options given`);
 		}
 
+		if(opts.container === undefined){
+			throw new Error(`No container option given`);
+		}
 		if(opts.property_name === undefined){
 			throw new Error(`No property_name option given`);
 		}
@@ -61,6 +67,7 @@ export class JList {
 			throw new Error(`No type given`);
 		}
 
+		this.container = opts.container;
 		this.property_name = opts.property_name;
 		this.registry_function = opts.registry_function;
 		this.type = opts.type;
@@ -100,15 +107,26 @@ export class JList {
 		this.emit('limitReached', this.property_name, elements, this.upper_bound);
 	}
 
-
 	/**
 	 * If an element is added or removed some
 	 */
 	_handleAdd(element){
 		if(this.containment){
-			// need to set a new parent
+			// set the parent
+			element._setParent(this.property_name, this.container);
 		}else{
 			// need to add it to the referenced items list
+			element._addOpositeReference(this.property_name, this.container);
+		}
+	}
+
+	_handleRemove(element){
+		if(this.containment){
+			// need to delete the parent
+			element._setParent(this.property_name, undefined);
+		}else{
+			// need to remove the oposite reference
+			element._removeOpositeReference(this.property_name, this.container);
 		}
 	}
 
@@ -148,12 +166,14 @@ export class JList {
 		// Than make the element to an ID
 		element = this._getElementForObject(element)._id;
 
-		if(opts.upper_bound === 1){
+		if(this.data === undefined){
+			return false;
+		}
+
+		if(this.upper_bound === 1){
 			// it will only store one element
-			if(this.data !== undefined){
-				if(this.data === element){
-					return true;
-				}
+			if(this.data === element){
+				return true;
 			}
 		}else{
 			if(this.unique){
@@ -174,18 +194,18 @@ export class JList {
 	 * @returns {number} The size of the stored elements
 	 */
 	size(){
-		if(opts.upper_bound === 1){
+		if(this.data === undefined){
+			return 0;
+		}
+
+		if(this.upper_bound === 1){
 			// it will only store one element
-			if(this.data === undefined){
-				return 0;
-			}else{
-				return 1;
-			}
+			return 1;
 		}else{
 			if(this.unique){
-				this.data.size();
+				return this.data.size;
 			}else{
-				this.data.length;
+				return this.data.length;
 			}
 		}
 	}
@@ -195,17 +215,21 @@ export class JList {
 	 * @param {object} element - The element to be added
 	 */
 	add(element){
+		if(element === undefined){
+				throw new Error("Element must be defined");
+		}
+
 		// check the given value and also proof the type.
 		// Than make the element to an ID
-		element = this._getElementForObject(element)._id;
+		const elementId = this._getElementForObject(element)._id;
 
-		if(opts.upper_bound === 1){
+		if(this.upper_bound === 1){
 			if(this.data !== undefined){
 				const oldElement = this.data;
 				this.data = undefined;
 				this._emitRemove(oldElement);
 			}
-			this.data = element;
+			this.data = elementId;
 			this._emitAdd(element);
 		}else{
 			if(this.unique){
@@ -215,15 +239,16 @@ export class JList {
 						// The limit is already reached, could not add a new element
 						this._emitLimitReached(element);
 					}else{
-						this.data.add(element);
+						this.data.set(elementId);
 						this._emitAdd(element);
 					}
 				}
 			}else{
-				this.data.push(element);
+				this.data.push(elementId);
 				this._emitAdd(element);
 			}
 		}
+		this._handleAdd(element);
 	}
 
 	/**
@@ -236,20 +261,19 @@ export class JList {
 		// Than make the element to an ID
 		element = this._getElementForObject(element)._id;
 
-		if(opts.upper_bound === 1){
+		if(this.upper_bound === 1){
 			// it will only store one element
 			if(this.data !== undefined){
 				if(this.data === element){
-					const oldElement = this.data;
 					this.data = undefined;
-					this._emitRemove(oldElement);
+					this._emitRemove(element);
 				}
 			}
 		}else{
 			if(this.unique){
 				if(this.data.has(element)){
 					this.data.delete(element);
-					this._emitRemove(oldElement);
+					this._emitRemove(element);
 				}
 			}else{
 				// first find the last element
@@ -264,7 +288,7 @@ export class JList {
 
 				// remove the last element
 				this.data.splice(lastIndex, 0);
-				this._emitRemove(oldElement);
+				this._emitRemove(element);
 			}
 		}
 	}
@@ -274,20 +298,21 @@ export class JList {
 	 * @param {function} callback - Function to execute for each element.
 	 */
 	forEach(callback){
-		if(opts.upper_bound === 1){
+		if(this.upper_bound === 1){
 			// it will only store one element
 			if(this.data !== undefined){
 				const element = this.registry_function(this.data);
 				callback(element, 0, [element]);
 			}
 		}else{
-			const allELements =
-hier weiter			
-
+			let i=0;
 			this.data.forEach((id)=>{
 				const element = this.registry_function(this.data);
+
+				// This is wrong, normaly the second array contains always all the elements
+				callback(element, i, [element]);
+				i++;
 			});
-			this.data.forEach(callback);
 		}
 	}
 
@@ -295,7 +320,7 @@ hier weiter
 	 * clears the list of stored elements
 	 */
 	clear(){
-		if(opts.upper_bound === 1){
+		if(this.upper_bound === 1){
 			// it will only store one element
 			if(this.data !== undefined){
 				const oldElement = this.data;
@@ -304,18 +329,24 @@ hier weiter
 			}
 		}else{
 			if(this.unique){
-				if(this.data.size() > 0){
+				if(this.data === undefined){
+					this.data = new Map();
+				}else if(this.data.size() > 0){
 					const oldElements = [];
 					this.data.forEach((val)=>{
 						oldElements.push(val)
 					});
+					this.data = new Map();
+					this._emitClear(oldElements);
 				}
-				this.data = new Map();
-				this._emitClear(oldElements);
 			}else{
-				const oldElements = this.data;
-				this.data = [];
-				this._emitClear(oldElements);
+				if(this.data !== undefined){
+					this.data = [];
+				}else{
+					const oldElements = this.data;
+					this.data = [];
+					this._emitClear(oldElements);
+				}
 			}
 		}
 	}

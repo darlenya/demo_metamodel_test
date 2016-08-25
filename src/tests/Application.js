@@ -1,9 +1,13 @@
 'use strict';
 
-import { JClass } from './JClass';
-import { Jlist } from './JList';
+import { JClass } from '../jmf/JClass';
+import { JList } from '../jmf/JList';
 import { Entitlement } from './Entitlement';
 
+
+/**
+ * Demo class used for the tests
+ */
 
 export class Application extends JClass{
 	constructor(opts) {
@@ -51,13 +55,14 @@ export class Application extends JClass{
 		 */
 
 		 // <no desc>
-		 this._entitlements = new Jlist({
- 			'property_name'     = 'entitlements',
- 			'unique'            = true,
- 			'upper_bound'       = -1,
- 			'containment'       = true,
- 			'registry_function' = this._getObjectForId
- 			'type'              = Entitlement
+		 this._entitlements = new JList({
+			'container'         : this,
+ 			'property_name'     : 'entitlements',
+ 			'unique'            : true,
+ 			'upper_bound'       : -1,
+ 			'containment'       : true,
+ 			'registry_function' : this._getObjectForId,
+ 			'type'              : Entitlement
  		});
 	}
 
@@ -112,7 +117,7 @@ export class Application extends JClass{
 	 * <!-- end-user-doc -->
 	 * @generated
 	 */
-	set name(description){
+	set description(description){
 		return this._description = description;
 	}
 

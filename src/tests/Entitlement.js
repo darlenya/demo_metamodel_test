@@ -1,7 +1,10 @@
 'use strict';
 
-import { JClass } from './JClass';
-// import { Jlist } from './JList';
+import {JClass} from '../jmf/JClass';
+
+/**
+ * Demo class used for the tests
+ */
 
 export class Entitlement extends JClass{
 	constructor(opts) {
