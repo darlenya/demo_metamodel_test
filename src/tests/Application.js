@@ -61,7 +61,7 @@ export class Application extends JClass{
  			'unique'            : true,
  			'upper_bound'       : -1,
  			'containment'       : true,
- 			'registry_function' : this._getObjectForId,
+ 			'registry_function' : this._model.getObjectForId,
  			'type'              : Entitlement
  		});
 	}

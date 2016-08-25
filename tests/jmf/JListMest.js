@@ -42,7 +42,6 @@ describe('JList Tests', () => {
     assert.equal( e3._getParent(), a1, "Invalid or NO parent" );
 
     // check the amount of stored entitlements
-    console.log("######### jetzt");
     assert.equal(a1.entitlements.size(), 3 );
 
     a2.entitlements.add(e2);
@@ -56,5 +55,35 @@ describe('JList Tests', () => {
     assert.equal( e2._getParent(), a2, "Invalid or NO parent" );
     assert.equal( e3._getParent(), a1, "Invalid or NO parent" );
   });
+
+  it("ForEach test", () => {
+    // create two different Application objects
+    const a1 = new Application();
+
+    const e1 = new Entitlement();
+    e1.name = 'Ent 1';
+    const e2 = new Entitlement();
+    e2.name = 'Ent 2';
+    const e3 = new Entitlement();
+    e3.name = 'Ent 3';
+
+    const ents = [e1,e2,e3];
+
+    // add the entitlement to an application
+    a1.entitlements.add(e1);
+    a1.entitlements.add(e2);
+    a1.entitlements.add(e3);
+
+    let counter =  0;
+
+    a1.entitlements.forEach((val)=>{
+      const ent = ents[counter];
+      counter++;
+      assert.equal( ent.name, "Ent "+counter, "For Each does not work" );
+    });
+
+    assert.equal( counter, 3, "For Each does not work" );
+  });
+
 
 });

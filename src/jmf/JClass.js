@@ -1,26 +1,24 @@
 'use strict';
 
-/**
- * Stores all the obejcts by there ID
- */
-const _objectRegistry = {};
-
-/**
- * This is the unique id
- */
-let _SEQUENCE_ID = 1000;
-
 export class JClass {
 
 	/**
 	 * The only supported option is the '_id' attribute
-	 * opts = {'_id' : 134}
+	 * opts = {
+	 *		'id'    : 134
+	 *		'model' : modelFactory
+   * }
 	 */
 	constructor(opts) {
-
 		if(opts === undefined){
-			opts = {};
+			throw new Error("No options given");
 		}
+
+		if(opts.model === undefined){
+			throw new Error("No model given");
+		}
+
+		this._model = opts.model;
 
 		// Stores the meta information for each property
 		this._property_types = {};
@@ -39,44 +37,32 @@ export class JClass {
 		// _referenced_by.$objectId.$propertyName = $count;
 		this._referenced_by = {};
 
-		// set the id for this object if not given
-		if(opts._id){
-			this.setInternalId(opts._id);
+		if(opts.id !== undefined){
+			this._id = opts.id;
 		}else{
-			this._id = _SEQUENCE_ID++;
+			this._id = undefined;
 		}
-
-		// store this object in the registry
-		_objectRegistry[this._id] = this;
-	}
-
-	/**
-	 * Set the internal id of this object. If the given ID is greater than the
-	 * current sequence id, the sequence id will set to the new level.
-	 * @param {number} id - The id to set
-	 */
-	setInternalId(id){
-		// if there is already an internal id, this id must be removed from the registry
-		if(_objectRegistry[this._id]){
-			// this object is already registered
-			delete (_objectRegistry[this._id])
-		}
-
-		this._id = id;
-		if(_SEQUENCE_ID < id){
-			_SEQUENCE_ID = id;
-			_SEQUENCE_ID++;
-		}
-
-		_objectRegistry[this._id] = this;
 	}
 
 	/**
 	 * Returns the internal sequence id
 	 * @returns {number} The internal sequence id of this object
 	 */
-	getInternalId(){
+	get id(){
 		return this._id;
+	}
+
+	/**
+	 * Sets the internal id of this object. This is only possible once. After the id is set
+	 * it could not be changed any more
+	 * @param {number} id - The idd to be set
+	 */
+	set id(id){
+		if(this._id === undefined){
+			this._id = id;
+		}else{
+			throw new Error("An id could not be set to a new value");
+		}
 	}
 
 	/**
@@ -86,56 +72,11 @@ export class JClass {
 	 */
 	setAllAttributes(attributeValues){
 		Object.keys(attributeValues).forEach((attrName)=>{
-			if(attrName === '_id'){
-				this.setInternalId(attributeValues[attrName]);
-			}else{
-				// only set the attribute value if this attribute is defined
-				if(this._property_types[attrName] != undefined){
-					this[attrName] = attributeValues[attrName];
-				}
+			// only set the attribute value if this attribute is defined
+			if(this._property_types[attrName] != undefined){
+				this[attrName] = attributeValues[attrName];
 			}
 		});
-	}
-
-	/**
-	 * The sequence for all the objects
-	 * @returns {number} A new sequence number
-	 */
-	_getNewId(){
-		return _SEQUENCE_ID++;
-	}
-
-	/**
-	 * Returns the object with the given ID. If the object does not exists
-	 * an error will be thrown
-	 * @param {number} id - The id of the object to be returned
-	 */
-	_getObjectForId(id){
-		if(_objectRegistry[id]=== undefined){
-			throw new Error(`The object with the id '${id}' does not exists`);
-		}else{
-			return _objectRegistry[id];
-		}
-	}
-
-	/**
-	 * Internal helper method. It will return the real object. If the ID is given
-	 * it will retrive the original object for the ID first. Then it will proof
-	 * that the object is of the given type.
-	 * @param {object} element - The element or element id to be prooved.
-	 * @returns {object} The real object if it could be found
-	 */
-	_getElementForObject(element){
-		if(element === undefined){
-			throw new Error(`The given element is 'undefined'`);
-		}
-
-		// The given element is an id, check that it reference a valid object
-		if(typeof element === 'number'){
-			element = this.registry_function(element);
-		}
-
-		return element;
 	}
 
 	/**
@@ -150,7 +91,7 @@ export class JClass {
 
 		if(newParent !== undefined){
 			// Second set the new parent for this object
-			newParent = this._getElementForObject(newParent);
+			newParent = this._model.getObjectForId(newParent);
 			if(this._parent === undefined){
 				this._parent = {};
 			}
@@ -192,7 +133,7 @@ export class JClass {
 	 * @param {object} sourceElement - The element this object was added.
 	 */
 	_addOpositeReference(propertyName, sourceElement){
-		const id = sourceElement._id;
+		const id = sourceElement.id;
 		if(this._referenced_by[objId] === undefined){
 			this._referenced_by[objId] = {};
 			this._referenced_by[objId][propertyName] = 1;
@@ -215,7 +156,7 @@ export class JClass {
 	 * @param {object} sourceElement - The object to be deleted from the incomming references
 	 */
 	_removeOpositeReference(propertyName, sourceElement){
-		const objId = sourceElement._id;
+		const objId = sourceElement.id;
 
 		if(this._referenced_by[objId] === undefined ){
 			// TODO The JClass needs a toString method to get a name
@@ -238,141 +179,5 @@ export class JClass {
 			}
 		}
 	}
-
-	// ####################################################################
-	// # OLD
-	// ####################################################################
-
-	// /**
-	//  * Adds the inverse reference. Each object added as a reference to an other object
-	//  * store the other object as an inverse reference.
-	//  * @param {string} propertyName - The name of the reference this object was added to
-	//  * @param {object} object - The object this object was added to a reference
-	//  */
-	// _addInverseReference(propertyName, object){
-	// 	// TODO
-	// }
-	//
-	// /**
-	//  * Adds an element to the reference with the given name
-	//  * @param {string} propName -  The name of the reference
-	//  * @param {object} expectedClass - The expected class for this object
-	//  * @param {object,number} element - The element or elementId to be added.
-	//  */
-	// _referenceAddElement(propertyName, expectedClass, element){
-	//
-	// 	// check that the property is a reference
-	// 	if(! this._isReference(propertyName)){
-	// 		throw new Error(`The given reference name '${propertyName}' is not a reference in the object '${this.constructor.name}'`);
-	// 	}
-	//
-	// 	// The given element is an id, check that it reference a valid object
-	// 	if(typeof element === 'number'){
-	// 		element = this._getObjectForId(element);
-	// 	}
-	//
-	// 	// Check that the element if of the expected type
-	// 	if(expectedClass !== undefined && !(element instanceof expectedClass)){
-	// 		throw new Error(`The element '${element.constructor.name}' if not an instance of '${expectedClass.constructor.name}'`);
-	// 	}
-	//
-	// 	// ok, add the element
-	// 	// TODO Wir haben verschieden typen von referencen
-	// 	this[propertyName].add(element._id);
-	//
-	// 	// add the inverse
-	// 	element._addInverseReference(propertyName, this);
-	//
-	// 	// if this reference is a containment reference then add the new parent to the element.
-	// 	if(this._isContainmentReference(propertyName)){
-	// 		element._setParent(this);
-	// 	}
-	// }
-	//
-	// _referenceGetElements(propertyName){
-	// 	// TODO
-	// 	// returns all the elements as object array
-	// }
-	//
-	// _referenceSetElements(propertyName, elements){
-	// 	// TODO
-	// 	// set all the element. The existing ones will be removed first
-	// 	// used if elemenst where reordered
-	// }
-	//
-	// /**
-	//  * This method returns true if the given reference is a containment reference.
-	//  * @param {string} propertyName - The name of the reference
-	//  * @returns {boolean} True if the given reference is a containment reference.
-	//  */
-	// _isContainmentReference(propertyName){
-	// 	if(this._isReference(propertyName)){
-	// 		if(this._reference_type[propertyName].containment){
-	// 			return true;
-	// 		}
-	// 	}
-	// 	return false;
-	// }
-	//
-	//
-	//
-	//
-	//
-	// /**
-	//  * Returns true if the given property is a Reference
-	//  * @param {string} propertyName - The name of the property
-	//  * @returns {boolean} True if the given property if of the type reference
-	//  */
-	// _isReference(propertyName){
-	// 	if(this._reference_type[propertyName] !== undefined){
-	// 		return true;
-	// 	}
-	// 	return false;
-	// }
-	//
-	// /**
-	//  * Returns the object type of a reference.
-	//  * @param {string} propertyName - The name of the reference you would like to get the type for
-	//  * @returns {string} The type of this reference
-	//  */
-	// _getTypeForReference(propertyName){
-	// 	if(this._isReference(propertyName)){
-	// 		return this._reference_type[propertyName].type;
-	// 	}else{
-	// 		throw new Error(`The given reference name '${propertyName}' is not a reference in the object '${this.constructor.name}'`);
-	// 	}
-	// }
-	//
-	// /**
-	//  * Returns true if the given property is a normal attribute
-	//  * @param {string} propertyName - The name of the property
-	//  * @returns {boolean} True if the given property is a normal attribute
-	//  */
-	// _isAttribute(propertyName){
-	// 	if(this._property_types[propertyName] !== undefined){
-	// 		return true;
-	// 	}
-	// 	return false;
-	// }
-	//
-	// /**
-	//  * Set all the given properties. This method is used when the data is loaded initially.
-	//  * @protected
-	//  * @param {object} obj - The object the data should be assigned to
-	//  * @param {object} data - The data to be assigned to the object
-	//  */
-	// _setAllProperties(data){
-	//   Object.keys(data).forEach((key)=>{
-	//     this[key] = data[key];
-	//   });
-	// }
-	//
-	// /**
-	//  * This method will be called if the given object should be deleted.
-	//  * The method will remove all references to other objects.
-	//  */
-	// _delete(){
-	// 	// TODO
-	// }
 
 }

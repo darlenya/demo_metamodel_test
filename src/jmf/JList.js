@@ -34,9 +34,6 @@ import {EventEmitter} from 'events';
  * didRemove
  *	property_name	- The name of the reference
  *	element       - The element removed
- * didClear
- *	property_name	- The name of the reference
- *	elementArray  - An array of the removed alements
  * limitReached
  *                - Emit if the upper bound for this list will be execeeded by adding a new value
  *	property_name	- The name of the reference
@@ -97,10 +94,6 @@ export class JList extends EventEmitter{
 
 	_emitRemove(element){
 		this.emit('didRemove', this.property_name, element);
-	}
-
-	_emitClear(elements){
-		this.emit('didClear', this.property_name, elements);
 	}
 
 	_emitLimitReached(element){
@@ -239,7 +232,7 @@ export class JList extends EventEmitter{
 						// The limit is already reached, could not add a new element
 						this._emitLimitReached(element);
 					}else{
-						this.data.set(elementId);
+						this.data.add(elementId);
 						this._emitAdd(element);
 					}
 				}
@@ -306,13 +299,14 @@ export class JList extends EventEmitter{
 			}
 		}else{
 			let i=0;
-			this.data.forEach((id)=>{
-				const element = this.registry_function(this.data);
-
-				// This is wrong, normaly the second array contains always all the elements
-				callback(element, i, [element]);
-				i++;
-			});
+			if(this.data !== undefined){
+				this.data.forEach((id)=>{
+					const element = this.registry_function(id);
+					// This is wrong, normaly the second array contains always all the elements
+					callback(element, i, [element]);
+					i++;
+				});
+			}
 		}
 	}
 
@@ -325,27 +319,29 @@ export class JList extends EventEmitter{
 			if(this.data !== undefined){
 				const oldElement = this.data;
 				this.data = undefined;
-				this._emitClear([oldElement]);
+				this._handleRemove(oldElement);
 			}
 		}else{
 			if(this.unique){
 				if(this.data === undefined){
-					this.data = new Map();
+					this.data = new Set();
 				}else if(this.data.size() > 0){
 					const oldElements = [];
 					this.data.forEach((val)=>{
+						this._handleRemove(val);
 						oldElements.push(val)
 					});
-					this.data = new Map();
-					this._emitClear(oldElements);
+					this.data = new Set();
 				}
 			}else{
 				if(this.data !== undefined){
 					this.data = [];
 				}else{
 					const oldElements = this.data;
+					oldElements.forEach((val)=>{
+						this._handleRemove(vale);
+					});
 					this.data = [];
-					this._emitClear(oldElements);
 				}
 			}
 		}
