@@ -1,5 +1,7 @@
 'use strict';
 
+const md5 = require('md5');
+
 export class JClass {
 
 	/**
@@ -66,6 +68,42 @@ export class JClass {
 	}
 
 	/**
+	 * Creates the MD5 hash for this object
+	 * @returns {string} The hash value as string
+	 */
+	getHash(){
+		// FIXME Problems if cyclic references. Needs to be fixed
+		return this.getHashValue().toString(16);
+	}
+
+	/**
+	 * Creates the MD5 hash for this object
+	 * @returns {number} The hash value as number
+	 */
+	getHashValue(){
+		// FIXME Problems if cyclic references. Needs to be fixed
+		let hashValue = 0;
+
+		// create the hash for all the attributes
+		Object.keys(this._property_types).forEach((attrName)=>{
+			const attrValue = this[attrName];
+			if(attrValue !== undefined){
+				const hashString = md5(this[attrName]);
+				const myInt = parseInt("0x"+hashString);
+				hashValue += myInt;
+			}
+		});
+
+		// create the has for all the references
+		Object.keys(this._reference_type).forEach((attrName)=>{
+			const list = this[attrName];
+			hashValue = hashValue + list.getHashValue();
+		});
+
+		return hashValue;
+	}
+
+	/**
 	 * Set all the given attributes in one go.
 	 * Only the attributes defined for this class will be set
 	 * @param {object} attributeValues - The attributes values to set
@@ -91,7 +129,6 @@ export class JClass {
 
 		if(newParent !== undefined){
 			// Second set the new parent for this object
-			newParent = this._model.getObjectForId(newParent);
 			if(this._parent === undefined){
 				this._parent = {};
 			}

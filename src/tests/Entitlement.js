@@ -6,6 +6,8 @@ import {JClass} from '../jmf/JClass';
  * Demo class used for the tests
  */
 
+const instanceName = 'Entitlement';
+
 export class Entitlement extends JClass{
 	constructor(opts) {
 		super(opts);
@@ -22,6 +24,19 @@ export class Entitlement extends JClass{
 		// <no desc>
 		this._description = undefined;
 	}
+
+	static getInstanceName(){
+		return instanceName;
+	}
+	
+	get instanceName(){
+		return instanceName;
+	}
+
+	set instanceName(name){
+		throw new Error('The instance name could not be changed');
+	}
+
 
 	/**
 	 * <!-- begin-user-doc -->

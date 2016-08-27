@@ -9,6 +9,8 @@ import { Entitlement } from './Entitlement';
  * Demo class used for the tests
  */
 
+const instanceName = 'Application';
+
 export class Application extends JClass{
 	constructor(opts) {
 		super(opts);
@@ -24,6 +26,12 @@ export class Application extends JClass{
 		// stores the metainformation for the reference types
 		this._reference_type = {
 			'entitlements' : {
+				'containment' : true,
+				'unique'      : true,
+				'upper_bound' : -1,
+				'type'        : 'Entitlement'
+			},
+			'otherList' : {
 				'containment' : true,
 				'unique'      : true,
 				'upper_bound' : -1,
@@ -61,11 +69,32 @@ export class Application extends JClass{
  			'unique'            : true,
  			'upper_bound'       : -1,
  			'containment'       : true,
- 			'registry_function' : this._model.getObjectForId,
+ 			'model'             : this._model,
  			'type'              : Entitlement
  		});
+
+		this._otherList = new JList({
+		 'container'         : this,
+		 'property_name'     : 'otherList',
+		 'unique'            : true,
+		 'upper_bound'       : -1,
+		 'containment'       : true,
+		 'model'             : this._model,
+		 'type'              : Entitlement
+	 });
 	}
 
+	static getInstanceName(){
+		return instanceName;
+	}
+
+	get instanceName(){
+		return instanceName;
+	}
+
+	set instanceName(name){
+		throw new Error('The instance name could not be changed');
+	}
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -146,6 +175,15 @@ export class Application extends JClass{
 	 */
 	get entitlements(){
 		return this._entitlements;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	get otherList(){
+		return this._otherList;
 	}
 
 

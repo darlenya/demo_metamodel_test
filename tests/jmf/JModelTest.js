@@ -4,6 +4,7 @@ import assert from 'assert';
 
 import { JModel } from '../../lib/jmf/JModel';
 import { Entitlement } from '../../lib/tests/Entitlement';
+import { Application } from '../../lib/tests/Application';
 
 
 
@@ -75,5 +76,51 @@ describe('Model Registry Tests', () => {
     const e1Copy = m1.getObjectForId(e1.id);
     assert.equal( e1Copy, e1);
   });
+
+});
+
+
+describe('Model Create Object', () => {
+  it("Let the model create the object", () => {
+    const m = new JModel({'name' : 'my model'});
+    m.registerClass(Entitlement);
+    m.registerClass(Application);
+    m.registerClass(Application, 'Gumbo'); // Register the class Application under the name 'Gumbo'
+
+    const seq = m.sequence;
+
+    const e1 = m.createObject('Entitlement');
+    const a1 = m.createObject('Application');
+    const a2 = m.createObject('Gumbo');
+
+    assert.equal( e1.id, seq +1);
+    assert.equal( a1.id, seq +2);
+    assert.equal( a2.id, seq +3);
+
+    assert.equal( e1.instanceName, 'Entitlement');
+    assert.equal( a1.instanceName, 'Application');
+    assert.equal( a2.instanceName, 'Application');
+  });
+
+  it("Test getAllObjectIds", () => {
+    const m = new JModel({'name' : 'my model'});
+    m.registerClass(Entitlement);
+    m.registerClass(Application);
+
+    const seq = m.sequence;
+
+    const e1 = m.createObject('Entitlement');
+    const a1 = m.createObject('Application');
+    const a2 = m.createObject('Application');
+
+    const allIds = m.getAllObjectIds();
+
+    assert.equal( allIds.length, 3);
+    assert.equal( allIds[0], seq+1);
+    assert.equal( allIds[1], seq+2);
+    assert.equal( allIds[2], seq+3);
+  });
+
+
 
 });

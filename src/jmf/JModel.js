@@ -54,8 +54,9 @@ export class JModel {
 	 *                             be registered. If not given the real classname is used
 	 */
 	registerClass(clazz, className){
-		if(typeof clazz !== 'object'){
-			throw new Error(`The given class ist not an object`);
+
+		if(typeof clazz !== 'function'){
+			throw new Error(`The given class ist not a function`);
 		}
 
 		if(! clazz instanceof JClass){
@@ -64,8 +65,9 @@ export class JModel {
 
 		// ok, register the class
 		if(className === undefined){
-			className = clazz.constructor.name;
+			className = clazz.getInstanceName();
 		}
+
 		this._class_registry[className] = clazz;
 	}
 
@@ -87,13 +89,30 @@ export class JModel {
 	}
 
 	/**
+	 * Returns the object IDs of all the registered objects
+	 * @Returns {array} The list of IDs
+	 */
+	getAllObjectIds(){
+		return Object.keys(this._object_registry);
+	}
+
+	/**
 	 * Returns the object with the given ID. If the object does not exists
 	 * an error will be thrown
 	 * @param {number} id - The id of the object to be returned
 	 */
 	getObjectForId(id){
+		if(id === undefined){
+			throw new Error(`The given ID must not 'undefined'`);
+		}
+
+		if(typeof id === 'string'){
+			// try to convert into number
+			id = parseInt(id);
+		}
+
 		if(typeof id !== 'number'){
-			throw new Error(`The given ID must be of type 'number'`);
+			throw new Error(`The given ID must be of type 'number' not '${typeof id}'`);
 		}
 
 		if(this._object_registry[id]=== undefined){
@@ -104,22 +123,33 @@ export class JModel {
 	}
 
 	/**
-	 * Creates a new object of the given class type
-	 * @param {string} className -  The name of the class, the object should be created from
+	 * Creates a new object of the given class type and register it at the model
+	 * @param {string} className  -  The name of the class, the object should be created from
 	 * @param {object} attributes -  (Optional) The attributes to set for this object
+	 * @param {object} options    -  (Optional) The options used for the constructor of the class
 	 * @returns {object} The created object
 	 */
-	createClass(className, attributes){
+	createObject(className, attributes, options){
 		const clazz = this._class_registry[className];
 
 		if(clazz === undefined){
 			throw new Error(`Under the name '${className}' is no class registered`);
 		}
 
-		const newObject = new clazz();
+		if(options === undefined){
+			options = {};
+		}
+
+		options.model = this;
+
+		const newObject = new clazz(options);
 		if(attributes){
 			newObject.setAllAttributes(attributes);
 		}
+
+		this.registerObject(newObject)
+
+		return newObject;
 	}
 
 }

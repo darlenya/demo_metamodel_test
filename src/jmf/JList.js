@@ -1,5 +1,7 @@
 'use strict';
 
+const md5 = require('md5');
+
 import {EventEmitter} from 'events';
 
 /**
@@ -23,7 +25,7 @@ import {EventEmitter} from 'events';
  *                     'n' defines how many elemenst the list can store
  * containment       - A true value means that the referenced element only exists in this reference. If it is deleted from
  *                     here, the element itself must be deleted
- * registry_function - The function to get the ID for an object
+ * model.getObjectForId - The function to get the ID for an object
  * type              - The class of the elements, which could stored in this list
  *
  *
@@ -56,8 +58,8 @@ export class JList extends EventEmitter{
 			throw new Error(`No property_name option given`);
 		}
 
-		if(opts.registry_function === undefined){
-			throw new Error(`No registry_function given`);
+		if(opts.model === undefined){
+			throw new Error(`No model given`);
 		}
 
 		if(opts.type === undefined){
@@ -66,7 +68,7 @@ export class JList extends EventEmitter{
 
 		this.container = opts.container;
 		this.property_name = opts.property_name;
-		this.registry_function = opts.registry_function;
+		this.model = opts.model;
 		this.type = opts.type;
 		this.unique = true;
 		this.upper_bound = -1;
@@ -86,6 +88,33 @@ export class JList extends EventEmitter{
 
 		// creates the needed properties
 		this.clear();
+	}
+
+	/**
+	 * Returns the hash value of this list
+	 * @returns {number} The claculated hashValue as number
+	 */
+	getHashValue(){
+		// FIXME Problems if cyclic references. Needs to be fixed
+		let value = 0;
+		this.forEach((obj)=>{
+			const singleVal =
+			value += obj.getHashValue();
+		});
+
+		// convert the value to a string
+		let stringVal = value.toString(16);
+
+		let nameVal;
+		if(value === 0){
+			nameVal = "Empty";
+		}else{
+			nameVal = md5(this.property_name);
+		}
+
+		let listMd5 = md5(nameVal + stringVal);
+		const res = parseInt("0x"+listMd5);
+		return res;
 	}
 
 	_emitAdd(element){
@@ -137,13 +166,13 @@ export class JList extends EventEmitter{
 
 		// The given element is an id, check that it reference a valid object
 		if(typeof element === 'number'){
-			element = this.registry_function(element);
+			element = this.model.getObjectForId(element);
 		}
 
 		const expectedClass = this.type;
 		// Check that the element if of the expected type
 		if(expectedClass !== undefined && !(element instanceof expectedClass)){
-			throw new Error(`The element '${element.constructor.name}' if not an instance of '${expectedClass.constructor.name}'`);
+			throw new Error(`The element '${element.instanceName}' if not an instance of '${expectedClass.instanceName}'`);
 		}
 
 		return element;
@@ -294,14 +323,14 @@ export class JList extends EventEmitter{
 		if(this.upper_bound === 1){
 			// it will only store one element
 			if(this.data !== undefined){
-				const element = this.registry_function(this.data);
+				const element = this.model.getObjectForId(this.data);
 				callback(element, 0, [element]);
 			}
 		}else{
 			let i=0;
 			if(this.data !== undefined){
 				this.data.forEach((id)=>{
-					const element = this.registry_function(id);
+					const element = this.model.getObjectForId(id);
 					// This is wrong, normaly the second array contains always all the elements
 					callback(element, i, [element]);
 					i++;
